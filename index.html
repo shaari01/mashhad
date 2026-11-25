@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#12141a" />
+    <meta name="description" content="مَقطع: برنامج مونتاج فيديو شخصي بالعربية يعمل بلا إنترنت" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <title>مَقطع</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <button class="ib" id="btn-menu" aria-label="المشاريع والإعدادات" data-icon="menu"></button>
+        <input id="project-name" class="pname" aria-label="اسم المشروع" />
+        <button class="ib" id="btn-undo" aria-label="تراجع" data-icon="undo"></button>
+        <button class="ib" id="btn-redo" aria-label="إعادة" data-icon="redo"></button>
+        <button class="ib" id="btn-mode" aria-label="تبديل وضع البطاقات والخط الزمني" data-icon="timeline"></button>
+        <button class="export-btn" id="btn-export"><span data-icon="export"></span><span>تصدير</span></button>
+      </header>
+
+      <main class="main">
+        <section class="preview-wrap" id="preview-wrap">
+          <div class="stage" id="stage">
+            <canvas id="preview" width="360" height="640" aria-label="معاينة الفيديو"></canvas>
+            <div class="stage-overlay" id="stage-overlay"></div>
+            <div class="empty-hint" id="empty-hint">
+              <button class="big-add" id="btn-empty-add"><span data-icon="add"></span><span>أضف مقاطع وصورًا</span></button>
+              <button class="link-btn" id="btn-empty-template">أو ابدأ من قالب جاهز</button>
+            </div>
+          </div>
+          <div class="transport">
+            <button class="play" id="btn-play" aria-label="تشغيل" data-icon="play"></button>
+            <span class="time" id="time">0:00</span>
+            <input type="range" id="scrub" min="0" max="1000" value="0" step="1" aria-label="موضع التشغيل" />
+            <span class="time dim" id="total">0:00</span>
+            <button class="ib sm" id="btn-fullscreen" aria-label="ملء الشاشة" data-icon="expand"></button>
+          </div>
+        </section>
+
+        <section class="workspace" id="workspace">
+          <div class="storyboard" id="storyboard" role="list" aria-label="المقاطع"></div>
+          <div class="timeline hidden" id="timeline" aria-label="الخط الزمني"></div>
+          <div class="tracks" id="tracks"></div>
+        </section>
+
+        <section class="sheet hidden" id="sheet" aria-live="polite">
+          <div class="sheet-head">
+            <span class="sheet-title" id="sheet-title"></span>
+            <button class="ib sm" id="sheet-close" aria-label="إغلاق" data-icon="check"></button>
+          </div>
+          <div class="sheet-body" id="sheet-body"></div>
+        </section>
+      </main>
+
+      <nav class="toolbar" id="toolbar" aria-label="الأدوات"></nav>
+    </div>
+
+    <div class="modal hidden" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-head">
+          <span id="modal-title"></span>
+          <button class="ib sm" id="modal-close" aria-label="إغلاق" data-icon="close"></button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

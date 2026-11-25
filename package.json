@@ -1,0 +1,32 @@
+{
+  "name": "mashhad",
+  "version": "0.1.0",
+  "description": "مَقطع: برنامج مونتاج فيديو شخصي (PWA عربي)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/unit/*.test.js",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
+    "icons": "node tools/make-icons.mjs"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@fontsource/amiri": "5.3.0",
+    "@fontsource/aref-ruqaa": "5.3.0",
+    "@fontsource/cairo": "5.3.0",
+    "@fontsource/el-messiri": "5.3.0",
+    "@fontsource/jomhuria": "5.3.0",
+    "@fontsource/lalezar": "5.3.0",
+    "@fontsource/noto-nastaliq-urdu": "5.3.0",
+    "@fontsource/reem-kufi": "5.3.0",
+    "mediabunny": "1.64.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.8",
+    "vite-plugin-pwa": "2.0.0"
+  },
+  "private": true,
+  "type": "module"
+}

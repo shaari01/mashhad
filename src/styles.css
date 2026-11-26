@@ -163,14 +163,14 @@ input[type=color] { width: 48px; height: 44px; border: 0; padding: 0; background
 .toast.show { opacity: 1; transform: translateX(-50%); }
 
 /* الخط الزمني */
-.timeline { position: relative; overflow-x: auto; overflow-y: hidden; padding: 6px 0 8px; direction: ltr; touch-action: pan-x; }
+.timeline { position: relative; overflow-x: auto; overflow-y: hidden; padding: 6px 0 8px; direction: rtl; touch-action: pan-x; }
 .tl-inner { position: relative; min-height: 40px; }
 .tl-ruler { position: relative; height: 18px; font-size: 10px; color: var(--dim); }
-.tl-ruler span { position: absolute; top: 0; transform: translateX(-50%); }
+.tl-ruler span { position: absolute; top: 0; transform: translateX(50%); }
 .tl-row { position: relative; height: 46px; margin: 3px 0; }
-.tl-row .lbl { position: sticky; left: 0; z-index: 4; width: 30px; height: 100%; display: grid; place-items: center; background: var(--bg); color: var(--dim); }
+.tl-row .lbl { position: sticky; right: 0; z-index: 4; width: 30px; height: 100%; display: grid; place-items: center; background: var(--bg); color: var(--dim); }
 .tl-item { position: absolute; top: 2px; bottom: 2px; border-radius: 8px; overflow: hidden; border: 2px solid #ffffff30; background: var(--bg3) left/auto 100% repeat-x; font-size: 11px; padding: 0 4px; color: #fff; text-shadow: 0 1px 2px #000; white-space: nowrap; direction: rtl; touch-action: none; }
-.tl-item.sel { border-color: var(--sel); }
+.tl-item.sel { border-color: var(--sel); z-index: 3; }
 .tl-item.text { background: #7a4dff55; border-color: #9a7dff; }
 .tl-item.ov { background: #ff6a3d44; border-color: var(--acc); }
 .tl-item.aud { background: #2d5bff40; border-color: #4d7bff; }

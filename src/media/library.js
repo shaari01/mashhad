@@ -172,6 +172,7 @@ export async function importFile({ file, handle }, { forceKind = null, copyAlway
     }
   } else rec.storage = 'memory';
   runtime.set(id, rt);
+  recCache.set(id, rec);
   await db.put('media', rec);
   if (kind === 'video' && rec.hasAudio) loadAudio(id); // في الخلفية
   return rec;

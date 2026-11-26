@@ -5,6 +5,7 @@ import { drawFrame, outputSize } from './render.js';
 import { renderMix, encodeWav, SAMPLE_RATE } from './audio.js';
 import * as lib from '../media/library.js';
 import { overlayFrameSpecs } from './overlays.js';
+import { ensureProjectFonts } from '../fonts.js';
 
 let mbp = null;
 const mb = () => (mbp ||= import('mediabunny'));
@@ -98,6 +99,7 @@ export async function exportVideo(project, opts = {}) {
   const t0 = performance.now();
   const progress = (phase, v) => opts.onProgress?.({ phase, value: v, elapsed: (performance.now() - t0) / 1000 });
 
+  await ensureProjectFonts(p);
   // الصوت أولًا
   progress('audio', 0);
   const buffers = await prepareAudio(p);
@@ -182,6 +184,7 @@ export async function exportVideo(project, opts = {}) {
 
 // تصدير إطار واحد كصورة PNG
 export async function exportFrame(project, t, short = 1080) {
+  await ensureProjectFonts(project);
   const { w: W, h: H } = outputSize(project.aspect, short);
   const lay = layout(project);
   const canvas = document.createElement('canvas');

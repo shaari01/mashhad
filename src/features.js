@@ -13,6 +13,7 @@ import { registerDraggable } from './ui/stage.js';
 import { overlayBoxes } from './engine/overlays.js';
 import { openFilterPanel, openEffectsPanel, openTemplates } from './ui/panels/visual.js';
 import { renderTimeline, setTimelineHooks, updateTimelineHead } from './ui/timeline.js';
+import { openCaptionsPanel } from './ui/panels/extras.js';
 import { openAudioPanel } from './ui/panels/music.js';
 import { hydrateIcons } from './ui/icons.js';
 import { $ } from './ui/dom.js';
@@ -37,6 +38,8 @@ export function installFeatures() {
   T('filter', 'filter', 'فلتر', openFilterPanel, 60, 'edit');
   T('effects', 'effects', 'تأثير', openEffectsPanel, 61, 'edit');
   T('template', 'template', 'قالب', openTemplates, 95, 'main');
+  // المرحلة 6
+  T('captions', 'captions', 'ترجمة', openCaptionsPanel, 54, 'over');
   installTimelineMode();
   registerDraggable({ type: 'overlay', boxes: () => overlayBoxes, get: (id) => app.project.overlays.find((o) => o.id === id), sizeKey: 'size' });
   setStoryboardHooks({ between: betweenButton });

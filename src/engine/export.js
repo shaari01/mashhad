@@ -79,7 +79,7 @@ export async function supportInfo(w = 1280, h = 720) {
   return { webcodecs: typeof VideoEncoder !== 'undefined', video, audio };
 }
 
-async function prepareAudio(project) {
+export async function prepareAudio(project) {
   const ids = lib.mediaIdsOf(project);
   for (const id of ids) { await lib.ensure(id); await lib.loadAudio(id); }
   return lib.audioBuffers(ids);
@@ -273,4 +273,35 @@ export async function benchmark(short = 720, fps = 30, seconds = 4, onProgress) 
   await output.finalize();
   const elapsed = (performance.now() - t0) / 1000;
   return { ok: true, W, H, fps, renderFps: n / elapsed, realtime: seconds / elapsed, codec: info.video };
+}
+
+// إطارات المشهد الأساسي (بلا ملصقات ولا نصوص) بدقة صغيرة، لتتبع الحركة. يعيد بيانات RGBA لكل إطار.
+export async function* baseFrames(project, { from = 0, to = 1, fps = 15, short = 180 } = {}) {
+  const p = { ...project, overlays: [], texts: [], frame: 'none' };
+  const { w: W, h: H } = outputSize(p.aspect, short);
+  const lay = layout(p);
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const providers = new Map();
+  const assets = lib.assetMap();
+  try {
+    for (let t = Math.max(0, from); t <= Math.min(to, lay.duration) + 1e-6; t += 1 / fps) {
+      const frames = new Map();
+      for (const it of activeAt(lay, t)) {
+        const c = it.clip;
+        const r = await lib.ensure(c.mediaId);
+        if (!r.ok) continue;
+        if (c.type === 'image') { frames.set(c.id, { img: r.rt.bitmap, w: r.rt.bitmap.width, h: r.rt.bitmap.height }); continue; }
+        if (!providers.has(c.id)) providers.set(c.id, await new VideoFrames(r.rt.file, Math.max(W, H) * 2).init());
+        const pv = providers.get(c.id);
+        const f = c.type === 'freeze' ? await pv.still(c.freezeAt || 0) : await pv.frameAt(sourceTime(c, t - it.start));
+        if (f) frames.set(c.id, f);
+      }
+      drawFrame(ctx, W, H, p, lay, t, frames, assets, new Map());
+      yield { t, w: W, h: H, data: ctx.getImageData(0, 0, W, H).data };
+    }
+  } finally {
+    for (const pv of providers.values()) pv?.dispose();
+  }
 }

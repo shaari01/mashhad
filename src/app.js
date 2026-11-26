@@ -11,7 +11,7 @@ export const app = {
   selected: null, // {type:'clip'|'audio'|'text'|'overlay', id}
   preview: null,
   mode: 'cards',
-  settings: { copyAlways: false, imageDuration: 3, transcribe: { url: '', key: '', model: 'whisper-1' } },
+  settings: { copyAlways: false, imageDuration: 3, transcribe: { url: '', key: '', model: 'whisper-1', lang: 'ar' } },
   listeners: new Set(),
   saving: null,
 };

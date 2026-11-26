@@ -1,5 +1,6 @@
 // الملصقات (إيموجي، وأشكال، وأسهم، وفقاعات كلام، وملصقاتك)، وفيديو أو صورة فوق الفيديو.
 import { app, edit, live, commit, select, findSelected } from '../../app.js';
+import { overlayExtras } from './extras.js';
 import { layout, fmtTime } from '../../core/timeline.js';
 import { newOverlay, SHAPES } from '../../engine/overlays.js';
 import * as lib from '../../media/library.js';
@@ -132,7 +133,7 @@ function overlayEditor(body, o) {
     btn('حتى نهاية الفيديو', () => edit('توقيت', () => { o.end = T; })),
     btn('نسخ', () => { const c = { ...JSON.parse(JSON.stringify(o)), id: 'ovl_' + Math.random().toString(36).slice(2, 10), x: Math.min(0.9, o.x + 0.08), y: Math.min(0.9, o.y + 0.08) }; edit('نسخ الملصق', (p) => p.overlays.push(c)); select('overlay', c.id); }, { icon: 'copy' }),
     btn('حذف', () => { edit('حذف الملصق', (p) => { p.overlays = p.overlays.filter((x) => x.id !== o.id); }); select(null); refreshSheet(); }, { icon: 'delete', cls: 'danger' })));
-  if (typeof window.__overlayExtras === 'function') window.__overlayExtras(body, o);
+  overlayExtras(body, o);
 }
 
 export function openPipPanel() {

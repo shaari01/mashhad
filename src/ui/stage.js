@@ -41,7 +41,7 @@ export function installStage({ onOpen } = {}) {
     if (!obj) return;
     cv.setPointerCapture(e.pointerId);
     if (!(app.selected?.type === hh.p.type && app.selected.id === hh.id)) { select(hh.p.type, hh.id); onOpen?.(hh.p.type, obj); }
-    drag = { p: hh.p, obj, sx: nx, sy: ny, ox: obj.x, oy: obj.y, moved: false };
+    drag = { p: hh.p, obj, sx: nx, sy: ny, ox: obj.x, oy: obj.y, odx: obj.dx || 0, ody: obj.dy || 0, moved: false };
     e.preventDefault();
   });
   cv.addEventListener('pointermove', (e) => {
@@ -58,10 +58,16 @@ export function installStage({ onOpen } = {}) {
     }
     const r = cv.getBoundingClientRect();
     const nx = (e.clientX - r.left) / r.width, ny = (e.clientY - r.top) / r.height;
-    drag.obj.x = Math.max(0, Math.min(1, drag.ox + nx - drag.sx));
-    drag.obj.y = Math.max(0, Math.min(1, drag.oy + ny - drag.sy));
-    // التصاق بالمنتصف
-    if (Math.abs(drag.obj.x - 0.5) < 0.02) drag.obj.x = 0.5;
+    if (drag.obj.track?.length) {
+      // ملصق متتبَّع: السحب يزيح الملصق عن النقطة المتتبَّعة
+      drag.obj.dx = drag.odx + nx - drag.sx;
+      drag.obj.dy = drag.ody + ny - drag.sy;
+    } else {
+      drag.obj.x = Math.max(0, Math.min(1, drag.ox + nx - drag.sx));
+      drag.obj.y = Math.max(0, Math.min(1, drag.oy + ny - drag.sy));
+      // التصاق بالمنتصف
+      if (Math.abs(drag.obj.x - 0.5) < 0.02) drag.obj.x = 0.5;
+    }
     drag.moved = true;
     live();
   });

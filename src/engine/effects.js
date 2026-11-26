@@ -4,6 +4,11 @@ import { clamp } from '../core/timeline.js';
 
 export const FILTERS = {
   none: { label: 'الأصل', css: '' },
+  dayshot: { label: 'تصوير نهاري', css: 'brightness(0.9) contrast(1.22) saturate(1.08)' },
+  nightshot: { label: 'تصوير ليلي', css: 'brightness(1.4) contrast(1.18) saturate(1.12)' },
+  clear: { label: 'وضوح', css: 'contrast(1.3) saturate(1.05) brightness(0.98)' },
+  colorup: { label: 'ألوان أقوى', css: 'saturate(1.55) contrast(1.05)' },
+  colordown: { label: 'ألوان أهدأ', css: 'saturate(0.6) contrast(1.04)' },
   vivid: { label: 'حيوي', css: 'saturate(1.45) contrast(1.08)' },
   warm: { label: 'دافئ', css: 'sepia(0.25) saturate(1.2) hue-rotate(-8deg)' },
   cool: { label: 'بارد', css: 'saturate(1.05) hue-rotate(12deg) brightness(1.03)', tint: ['#2a6cff', 0.08] },

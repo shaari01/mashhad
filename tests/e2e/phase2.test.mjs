@@ -1,7 +1,7 @@
 // المرحلة 2: النص العربي، والانتقالات، والسرعة، والمقاسات
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor, frameColor } from './helpers.mjs';
+import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor, frameColor , tool, setSlider } from './helpers.mjs';
 
 test('المرحلة 2: نص عربي وانتقالات وسرعة ومقاسات', { timeout: 240000 }, async () => {
   const srv = await startServer(4175);
@@ -12,7 +12,7 @@ test('المرحلة 2: نص عربي وانتقالات وسرعة ومقاسا
 
     // السرعة 2×
     await page.locator('#storyboard .card').nth(0).click();
-    await page.click('[data-tool="speed"]');
+    await tool(page, 'speed');
     await page.locator('.sheet .chip', { hasText: '2×' }).first().click();
     let p = await proj(page);
     assert.equal(p.clips[0].speed, 2);
@@ -36,7 +36,7 @@ test('المرحلة 2: نص عربي وانتقالات وسرعة ومقاسا
 
     // نص عربي
     await page.evaluate(() => window.__app.preview.seek(0.5));
-    await page.click('[data-tool="text"]');
+    await tool(page, 'text');
     await page.getByText('نص جديد').click();
     await page.fill('#sheet textarea', 'مرحبًا بالعالم\nلا إله إلا الله');
     await page.locator('#sheet textarea').dispatchEvent('change');
@@ -67,7 +67,7 @@ test('المرحلة 2: نص عربي وانتقالات وسرعة ومقاسا
     await page.click('#sheet-close');
 
     // المقاس 16:9
-    await page.click('[data-tool="aspect"]');
+    await tool(page, 'aspect');
     await page.locator('.sheet .chip', { hasText: '١٦:٩' }).click();
     p = await proj(page);
     assert.equal(p.aspect, '16:9');

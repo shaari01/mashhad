@@ -27,7 +27,6 @@
             <div class="stage-overlay" id="stage-overlay"></div>
             <div class="empty-hint" id="empty-hint">
               <button class="big-add" id="btn-empty-add"><span data-icon="add"></span><span>أضف مقاطع وصورًا</span></button>
-              <button class="link-btn" id="btn-empty-template">أو ابدأ من قالب جاهز</button>
             </div>
           </div>
           <div class="transport">
@@ -47,14 +46,16 @@
 
         <section class="sheet hidden" id="sheet" aria-live="polite">
           <div class="sheet-head">
+            <button class="ib sm sheet-x" id="sheet-cancel" aria-label="إلغاء" data-icon="close"></button>
             <span class="sheet-title" id="sheet-title"></span>
-            <button class="ib sm" id="sheet-close" aria-label="إغلاق" data-icon="check"></button>
+            <button class="ib sm sheet-ok" id="sheet-close" aria-label="اعتماد" data-icon="check"></button>
           </div>
           <div class="sheet-body" id="sheet-body"></div>
         </section>
       </main>
 
       <nav class="toolbar" id="toolbar" aria-label="الأدوات"></nav>
+      <nav class="tabs" id="tabs" aria-label="مجموعات الأدوات"></nav>
     </div>
 
     <div class="modal hidden" id="modal" role="dialog" aria-modal="true">

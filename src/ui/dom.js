@@ -55,10 +55,14 @@ export function closeModal() {
   f?.();
 }
 
-// اللوحة السفلية للأدوات
+// اللوحة السفلية للأدوات: ترى أثر كل ضبط على المعاينة فورًا، ثم ✓ للاعتماد أو ✕ للإلغاء والرجوع.
 let sheetState = null;
+let sheetHooks = { mark: () => null, rollback: () => false };
+export function setSheetHooks(x) { sheetHooks = { ...sheetHooks, ...x }; }
 export function openSheet(id, title, render) {
-  sheetState = { id, title, render };
+  // فتح لوحة أخرى يعتمد ما في اللوحة السابقة
+  if (sheetState) sheetState.cleanup?.();
+  sheetState = { id, title, render, mark: sheetHooks.mark() };
   $('#sheet-title').textContent = title;
   const body = $('#sheet-body');
   body.innerHTML = '';
@@ -80,6 +84,7 @@ export function refreshSheet() {
   hydrateIcons(body);
   body.scrollTop = st;
 }
+// ✓ اعتماد وإغلاق
 export function closeSheet() {
   if (!sheetState) return;
   sheetState.cleanup?.();
@@ -88,15 +93,75 @@ export function closeSheet() {
   document.body.classList.remove('sheet-open');
   document.dispatchEvent(new CustomEvent('sheet', { detail: null }));
 }
+// ✕ إلغاء كل ما تغيّر منذ فتح اللوحة
+export function cancelSheet() {
+  if (!sheetState) return;
+  const m = sheetState.mark;
+  closeSheet();
+  if (sheetHooks.rollback(m)) toast('أُلغيت التغييرات');
+}
 export const sheetId = () => sheetState?.id || null;
 
-// منزلق مع قيمة معروضة
+// منزلق آمن للمس: لا يتغير بمجرد تمرير الإصبع على الشاشة.
+// يتحرك فقط بسحب المقبض نفسه (أو بالأزرار − و+، أو بكتابة الرقم)، ولمس المسار لا يقفز بالقيمة.
+// بالفأرة على اللابتوب يعمل النقر على المسار أيضًا. الاتجاه من اليمين إلى اليسار.
 export function slider(label, { min, max, step = 0.01, value, fmt = (v) => v, oninput, onchange }) {
-  const val = h('span.val', {}, fmt(value));
-  const r = h('input', { type: 'range', min, max, step, value });
-  r.addEventListener('input', () => { val.textContent = fmt(+r.value); oninput?.(+r.value); });
-  r.addEventListener('change', () => onchange?.(+r.value));
-  return h('div.row', {}, h('label', {}, label), r, val);
+  min = +min; max = +max; step = +step;
+  let v = Math.min(max, Math.max(min, +value));
+  const dec = Math.max(0, (String(step).split('.')[1] || '').length);
+  const q = (x) => +Math.min(max, Math.max(min, Math.round((x - min) / step) * step + min)).toFixed(dec);
+  const val = h('button.val', { type: 'button', 'aria-label': 'اكتب القيمة' }, fmt(v));
+  const fill = h('div.fill'), thumb = h('div.thumb');
+  const track = h('div.srange', { role: 'slider', tabindex: 0, 'aria-label': label, 'aria-valuemin': min, 'aria-valuemax': max }, h('div.rail', {}, fill), thumb);
+  const paint = () => {
+    const p = max > min ? (v - min) / (max - min) : 0;
+    fill.style.width = p * 100 + '%';
+    thumb.style.right = `calc(${p * 100}% - 11px)`;
+    track.setAttribute('aria-valuenow', v);
+    val.textContent = fmt(v);
+  };
+  const set = (x, done) => {
+    const nv = q(x);
+    if (nv !== v) { v = nv; paint(); oninput?.(v); }
+    if (done) onchange?.(v);
+  };
+  let drag = null;
+  track.addEventListener('pointerdown', (e) => {
+    const r = track.getBoundingClientRect();
+    const tr = thumb.getBoundingClientRect();
+    const onThumb = Math.abs(e.clientX - (tr.left + tr.width / 2)) < 26;
+    if (!onThumb && e.pointerType !== 'mouse') return; // لمس المسار لا يغيّر شيئًا
+    e.preventDefault();
+    track.setPointerCapture(e.pointerId);
+    if (!onThumb) set(min + ((r.right - e.clientX) / r.width) * (max - min));
+    drag = { x0: e.clientX, v0: v, w: r.width };
+    track.classList.add('drag');
+  });
+  track.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    set(drag.v0 + ((drag.x0 - e.clientX) / drag.w) * (max - min));
+  });
+  const end = () => { if (!drag) return; drag = null; track.classList.remove('drag'); onchange?.(v); };
+  track.addEventListener('pointerup', end);
+  track.addEventListener('pointercancel', end);
+  track.addEventListener('keydown', (e) => {
+    const d = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? 1 : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? -1 : 0;
+    if (d) { e.preventDefault(); set(v + d * step, true); }
+  });
+  const stepBtn = (d, ic, lb) => h('button.step', { type: 'button', 'aria-label': lb, html: icon(ic, 16), onclick: () => set(v + d * step, true) });
+  val.addEventListener('click', () => {
+    const inp = h('input.vin', { type: 'number', step, min, max, value: v, inputmode: 'decimal', dir: 'ltr' });
+    val.replaceWith(inp);
+    inp.focus(); inp.select();
+    const fin = () => { if (!inp.isConnected) return; const x = parseFloat(inp.value); inp.replaceWith(val); if (isFinite(x)) set(x, true); };
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') fin(); if (e.key === 'Escape') inp.replaceWith(val); });
+    inp.addEventListener('blur', fin);
+  });
+  paint();
+  const row = h('div.row.sl', {}, h('label', {}, label), stepBtn(-1, 'minus', 'أنقص ' + label), track, stepBtn(1, 'plus', 'زد ' + label), val);
+  row._set = (x) => set(x, true); // للاختبارات الآلية
+  track._set = row._set;
+  return row;
 }
 
 export function seg(options, value, onpick) {

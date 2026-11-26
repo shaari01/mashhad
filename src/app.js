@@ -69,6 +69,16 @@ export function redo() {
   return null;
 }
 
+// زر ✕ في اللوحات: الرجوع إلى حال المشروع عند فتح اللوحة
+export function markPoint() { return app.history.mark(); }
+export function rollbackTo(m) {
+  if (!m || (app.history.last === m.s && JSON.stringify(app.project) === m.s)) return false;
+  const st = app.history.rollback(m);
+  if (!st) return false;
+  app.project = st; afterLoad(); scheduleSave();
+  return true;
+}
+
 function afterLoad() {
   if (app.selected && !findSelected()) app.selected = null;
   app.preview?.invalidate();
@@ -125,6 +135,15 @@ export async function newProj(name) {
 export async function loadSettings() {
   const s = await db.get('kv', 'settings');
   if (s) app.settings = { ...app.settings, ...s, transcribe: { ...app.settings.transcribe, ...(s.transcribe || {}) } };
+}
+// العناصر التي أخفاها المستخدم من القوائم (من «المكتبة»)
+export const shown = (kind, id) => !(app.settings.hidden?.[kind] || []).includes(id);
+export async function setShown(kind, id, on) {
+  const h = (app.settings.hidden ||= {});
+  const l = new Set(h[kind] || []);
+  if (on) l.delete(id); else l.add(id);
+  h[kind] = [...l];
+  await saveSettings();
 }
 export async function saveSettings() { await db.put('kv', clone(app.settings), 'settings'); }
 

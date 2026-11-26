@@ -1,26 +1,27 @@
 // نقطة البداية: تجهيز الواجهة والمعاينة والأدوات والحفظ التلقائي.
 import './fonts.js';
 import './styles.css';
-import { app, on, emit, undo, redo, select, edit, restoreLast, loadSettings, saveNow, targetClip } from './app.js';
+import { app, on, emit, undo, redo, select, edit, restoreLast, loadSettings, saveNow, targetClip, markPoint, rollbackTo } from './app.js';
 import { layout, fmtTime } from './core/timeline.js';
 import { addClips } from './core/edits.js';
 import { Preview } from './engine/preview.js';
 import { outputSize } from './engine/render.js';
 import * as lib from './media/library.js';
-import { $, h, toast, refreshSheet, closeSheet, sheetId, modal } from './ui/dom.js';
+import { $, h, toast, refreshSheet, closeSheet, cancelSheet, sheetId, modal, setSheetHooks } from './ui/dom.js';
 import { hydrateIcons } from './ui/icons.js';
 import { renderStoryboard, setStoryboardHooks, scrollToSelected } from './ui/storyboard.js';
 import { renderTracks, setTrackHooks, updateHeads } from './ui/tracks.js';
-import { registerTool, renderToolbar } from './ui/tools.js';
+import { registerTool, renderToolbar, toolTab } from './ui/tools.js';
 import { openTrim, doSplit, doDelete, doDuplicate, doReplace, openTransform, openVolume } from './ui/panels/clip.js';
 import { openAudioPanel } from './ui/panels/music.js';
 import { openExport } from './ui/panels/export.js';
 import { openMenu } from './ui/panels/projects.js';
 import { installFeatures } from './features.js';
+import { loadUserFonts } from './media/userfonts.js';
 
 // ———— إضافة الوسائط ————
-export async function addMedia(atIndex = null) {
-  const files = await lib.pickFiles('visual', { preferCopy: app.settings.copyAlways });
+export async function addMedia(atIndex = null, kind = 'visual') {
+  const files = await lib.pickFiles(kind, { preferCopy: app.settings.copyAlways });
   if (!files.length) return;
   const recs = [];
   let i = 0;
@@ -94,22 +95,26 @@ $('#btn-fullscreen').onclick = () => {
 };
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) document.body.classList.remove('fs'); });
 $('#sheet-close').onclick = () => closeSheet();
+$('#sheet-cancel').onclick = () => cancelSheet();
+setSheetHooks({ mark: markPoint, rollback: rollbackTo });
 $('#modal-close').onclick = () => { $('#modal').classList.add('hidden'); };
 $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') $('#modal-close').click(); });
 const nameInput = $('#project-name');
 nameInput.addEventListener('change', () => edit('الاسم', (p) => { p.name = nameInput.value.trim() || 'بلا اسم'; }));
 
 // ———— الأدوات ————
-const T = (id, icon, label, run, order, group = 'clip', hidden) => registerTool({ id, icon, label, run, order, group, hidden });
-T('add', 'add', 'إضافة', () => addMedia(), 0, 'main');
+const T = (id, icon, label, run, order, group = 'video', hidden) => registerTool({ id, icon, label, run, order, group, hidden });
+// مجموعة الفيديو
+T('add', 'add', 'إضافة', () => addMedia(), 0, 'video');
 T('trim', 'trim', 'قص', openTrim, 10);
 T('split', 'split', 'تقسيم', doSplit, 11);
+T('transform', 'rotate', 'تدوير وقلب', openTransform, 16);
+T('volume', 'volume', 'صوت المقطع', openVolume, 19);
+T('copy', 'copy', 'نسخ', doDuplicate, 80);
+T('replace', 'replace', 'استبدال', doReplace, 81);
+T('delete', 'delete', 'حذف', doDelete, 82);
+// مجموعة الصوت
 T('music', 'music', 'موسيقى', () => openAudioPanel(null, 'music'), 40, 'audio');
-T('volume', 'volume', 'صوت', openVolume, 41, 'audio');
-T('transform', 'rotate', 'تدوير', openTransform, 70, 'edit');
-T('copy', 'copy', 'نسخ', doDuplicate, 80, 'edit');
-T('replace', 'replace', 'استبدال', doReplace, 81, 'edit');
-T('delete', 'delete', 'حذف', doDelete, 82, 'edit');
 
 setStoryboardHooks({ onAdd: () => addMedia(), onOpen: () => openTrim() });
 setTrackHooks({ openAudio: (a, kind) => openAudioPanel(a, kind) });
@@ -147,7 +152,8 @@ document.addEventListener('keydown', (e) => {
   else if (k === 'delete') doDelete();
   else if (k === 'arrowleft') app.preview.seek(app.preview.time + (e.shiftKey ? 1 : 1 / 30));
   else if (k === 'arrowright') app.preview.seek(app.preview.time - (e.shiftKey ? 1 : 1 / 30));
-  else if (k === 'escape') closeSheet();
+  else if (k === 'escape') cancelSheet();
+  else if (k === 'enter' && sheetId() && !e.target.matches('textarea, button')) closeSheet();
 });
 
 // ———— التثبيت والحفظ ————
@@ -161,10 +167,12 @@ window.addEventListener('pagehide', () => saveNow().catch(() => {}));
   installFeatures({ addMedia });
   renderToolbar();
   await loadSettings();
+  loadUserFonts().catch(() => {});
   await lib.requestPersistence();
   await restoreLast();
   renderAll();
   window.__app = app; // للاختبارات الآلية
   window.__lib = lib;
+  window.__toolTab = toolTab;
   document.body.dataset.ready = '1';
 })();

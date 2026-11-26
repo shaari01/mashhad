@@ -1,7 +1,7 @@
 // المرحلة 1: البطاقات، والإضافة، والقص والتقسيم، والموسيقى، وتصدير MP4، والحفظ، والعمل بلا إنترنت
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, openApp, chooseFiles, proj, canvasStats, saveExport, ffprobe, waitFor, meanVolume } from './helpers.mjs';
+import { startServer, openApp, chooseFiles, proj, canvasStats, saveExport, ffprobe, waitFor, meanVolume , tool, setSlider } from './helpers.mjs';
 
 test('المرحلة 1 كاملة في متصفح جوال', { timeout: 240000 }, async () => {
   const srv = await startServer(4173);
@@ -10,7 +10,8 @@ test('المرحلة 1 كاملة في متصفح جوال', { timeout: 240000 }
     // الواجهة عربية من اليمين لليسار
     assert.equal(await page.getAttribute('html', 'dir'), 'rtl');
     const toolSize = await page.$eval('.tool', (e) => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
-    assert.ok(toolSize[0] >= 64 && toolSize[1] >= 64, 'أيقونات كبيرة للمس');
+    assert.ok(toolSize[0] >= 44 && toolSize[0] <= 80 && toolSize[1] >= 44 && toolSize[1] <= 56, 'أيقونات صغيرة بأسلوب فيفافيديو مع مساحة لمس كافية: ' + toolSize);
+    assert.equal(await page.locator('#tabs .tab').count(), 4, 'أربع مجموعات');
 
     // إضافة فيديو وصورة وفيديو
     await chooseFiles(page, () => page.click('#btn-empty-add'), ['clipA.webm', 'photo.jpg', 'clipB.mp4']);
@@ -24,14 +25,14 @@ test('المرحلة 1 كاملة في متصفح جوال', { timeout: 240000 }
 
     // التقسيم عند المؤشر
     await page.evaluate(() => window.__app.preview.seek(2));
-    await page.click('[data-tool="split"]');
+    await tool(page, 'split');
     await waitFor(page, () => window.__app.project.clips.length === 4);
     p = await proj(page);
     assert.ok(Math.abs(p.clips[0].out - 2) < 0.05);
 
     // القص بالمقابض (السحب)
     await page.locator('#storyboard .card').nth(0).click();
-    await page.click('[data-tool="trim"]');
+    await tool(page, 'trim');
     await page.waitForSelector('.trimmer .h');
     const tr = await page.$eval('.trimmer', (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
     const hA = page.locator('.trimmer .h').first();
@@ -66,7 +67,7 @@ test('المرحلة 1 كاملة في متصفح جوال', { timeout: 240000 }
     assert.equal(p.clips.length, 4);
 
     // الموسيقى
-    await page.click('[data-tool="music"]');
+    await tool(page, 'music');
     await chooseFiles(page, () => page.getByText('أضف موسيقى من ملفاتك').click(), ['music.mp3']);
     await waitFor(page, () => window.__app.project.audio.length === 1);
     p = await proj(page);

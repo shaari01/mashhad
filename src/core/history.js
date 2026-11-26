@@ -21,6 +21,15 @@ export class History {
     this.last = s;
     return true;
   }
+  // نقطة رجوع للوحة مفتوحة (زر ✕ يلغي كل ما حدث بعدها)
+  mark() { return { n: this.undoStack.length, s: this.last }; }
+  rollback(m) {
+    if (!m) return null;
+    this.undoStack.length = Math.min(this.undoStack.length, m.n);
+    this.redoStack = [];
+    this.last = m.s;
+    return JSON.parse(m.s);
+  }
   get canUndo() { return this.undoStack.length > 0; }
   get canRedo() { return this.redoStack.length > 0; }
   undo() {

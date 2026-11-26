@@ -1,5 +1,13 @@
 // أيقونات خطية بسيطة (SVG) — مرسومة يدويًا، بلا مكتبات خارجية.
 const P = {
+  camera: '<rect x="2.5" y="6" width="13" height="12" rx="2"/><path d="m15.5 10 6-3.5v11l-6-3.5"/>',
+  keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M6 13.5h.01M18 13.5h.01M8.5 14.5h7"/>',
+  library: '<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16 5 3.8-1 3 15.5-3.8.8z"/>',
+  narrator: '<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M17 7c1 1 1 3 0 4M19.5 5c2 2 2 6 0 8"/>',
+  flipv: '<g transform="rotate(90 12 12)"><path d="M12 3v18"/><path d="M8 7 3 12l5 5zM16 7l5 5-5 5z"/></g>',
+  imgadd: '<rect x="3" y="4" width="14" height="14" rx="2"/><circle cx="8" cy="9" r="1.5"/><path d="m3 16 4-4 5 5"/><path d="M19 14v6M16 17h6"/>',
+  imgset: '<rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 15 5-5 5 5 3-3 5 5"/><circle cx="17" cy="8" r="1.5"/>',
+  audioset: '<path d="M4 18V6M9 18V9M14 18V4M19 18v-7"/><circle cx="4" cy="14" r="1.6" fill="currentColor"/><circle cx="14" cy="9" r="1.6" fill="currentColor"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
   redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',

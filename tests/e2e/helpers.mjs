@@ -102,3 +102,19 @@ export function meanVolume(file, from, dur) {
     return m ? +m[1] : -99;
   } catch { return -99; }
 }
+
+// فتح أداة: يعتمد اللوحة المفتوحة (✓) إن وُجدت، ثم يختار مجموعتها، ثم يلمسها
+export async function tool(page, id) {
+  if (await page.locator('#sheet-close').isVisible()) {
+    const tb = await page.locator(`[data-tool="${id}"]`).isVisible().catch(() => false);
+    if (!tb) await page.click('#sheet-close');
+  }
+  const tab = await page.evaluate((x) => window.__toolTab(x), id);
+  if (!(await page.locator(`[data-tool="${id}"]`).isVisible().catch(() => false))) await page.click(`[data-tab="${tab}"]`);
+  await page.click(`[data-tool="${id}"]`);
+}
+
+// ضبط منزلق آمن باسمه
+export async function setSlider(page, label, v) {
+  await page.locator(`.sheet .srange[aria-label="${label}"]`).first().evaluate((el, x) => el._set(x), v);
+}

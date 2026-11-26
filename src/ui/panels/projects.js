@@ -15,6 +15,7 @@ export async function openMenu() {
   body.append(h('div.row', {},
     btn('مشروع جديد', async () => { await newProj(); closeModal(); toast('مشروع جديد'); }, { icon: 'plus', cls: 'pri' }),
     btn('اختبار أداء الجهاز', () => openBenchmark(), { icon: 'speed' }),
+    btn('المكتبة', () => import('./library.js').then((m) => m.openLibrary()), { icon: 'library' }),
     btn('الإعدادات', () => openSettings(), { icon: 'settings' })));
   const needPerm = [];
   for (const id of lib.mediaIdsOf(app.project)) if (!lib.rt(id)?.file) needPerm.push(id);

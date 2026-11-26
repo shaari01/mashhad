@@ -1,34 +1,27 @@
-// المرحلة 5: القوالب، والفلاتر وتوحيد الألوان، والمؤثرات المرئية، والإطارات، والخط الزمني المتقدم
+// المرحلة 5: الفلاتر وتوحيد الألوان، والمؤثرات المرئية، والإطارات، والخط الزمني المتقدم
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor } from './helpers.mjs';
+import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor , tool, setSlider } from './helpers.mjs';
 
-test('المرحلة 5: قالب وفلاتر ومؤثرات وخط زمني', { timeout: 300000 }, async () => {
+test('المرحلة 5: فلاتر ومؤثرات وخط زمني', { timeout: 300000 }, async () => {
   const srv = await startServer(4179);
   const { browser, page, errors } = await openApp(srv.url);
   try {
-    // قالب من الشاشة الفارغة
-    await page.click('#btn-empty-template');
-    await chooseFiles(page, () => page.locator('.modal .cell', { hasText: 'مضحك سريع' }).click(), ['photo.jpg', 'clipA.webm', 'photo.jpg', 'clipB.mp4']);
-    await waitFor(page, () => window.__app.project.clips.length === 4 && window.__app.project.audio.some((a) => a.kind === 'music'), null, 60000);
-    let p = await proj(page);
-    assert.equal(p.aspect, '9:16');
-    assert.ok(p.beats.length > 4, 'علامات الإيقاع من الموسيقى المدمجة');
-    assert.ok(p.clips.every((c) => c.filter === 'vivid'));
-    assert.ok(p.texts.some((t) => t.text.includes('لحظات مضحكة')));
-    assert.ok(p.audio.some((a) => a.kind === 'sfx'), 'مؤثرات على القطعات');
-    assert.equal(p.musicBuiltin, 'fun');
+    // أربعة عناصر من الشاشة الفارغة (القوالب أُزيلت بطلب علي)
+    await chooseFiles(page, () => page.click('#btn-empty-add'), ['photo.jpg', 'clipA.webm', 'photo.jpg', 'clipB.mp4']);
+    await waitFor(page, () => window.__app.project.clips.length === 4, null, 60000);
+    let p;
+    assert.equal(await page.locator('#btn-empty-template').count(), 0, 'لا قوالب');
 
     // فلتر لمقطع واحد ثم توحيد الكل
     await page.locator('#storyboard .card').first().click();
-    await page.click('[data-tool="filter"]');
+    await tool(page, 'filter');
     await page.locator('.sheet .chip', { hasText: 'أبيض وأسود' }).click();
     p = await proj(page);
     assert.equal(p.clips[0].filter, 'bw');
-    assert.equal(p.clips[1].filter, 'vivid');
+    assert.equal(p.clips[1].filter || 'none', 'none');
     await page.locator('.sheet .seg button', { hasText: 'تعديل' }).click();
-    const sl = page.locator('.sheet input[type=range]').first();
-    await sl.evaluate((el) => { el.value = 0.3; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
+    await setSlider(page, 'السطوع', 0.3);
     p = await proj(page);
     assert.ok(Math.abs(p.clips[0].adjust.brightness - 0.3) < 0.03);
     await page.locator('.sheet .seg button', { hasText: 'توحيد الألوان' }).click();
@@ -40,12 +33,17 @@ test('المرحلة 5: قالب وفلاتر ومؤثرات وخط زمني', {
     await page.click('#sheet-close');
 
     // مؤثر مرئي وإطار
-    await page.click('[data-tool="effects"]');
+    await tool(page, 'effects');
     await page.locator('.sheet .seg button', { hasText: 'كامل المقطع' }).click();
     await page.locator('.sheet .chip').first().click();
-    await page.locator('.sheet .chip', { hasText: 'تظليل' }).first().click().catch(() => {});
     p = await proj(page);
     assert.ok(p.clips[0].effects.some((e) => e.end > 1e8), 'مؤثر على كامل المقطع');
+    await page.click('#sheet-close');
+
+    // نص للسحب في الخط الزمني
+    await page.evaluate(() => window.__app.preview.seek(0));
+    await tool(page, 'text');
+    await page.getByRole('button', { name: 'نص جديد' }).click();
     await page.click('#sheet-close');
 
     // الخط الزمني المتقدم: سحب النص
@@ -77,14 +75,6 @@ test('المرحلة 5: قالب وفلاتر ومؤثرات وخط زمني', {
     await page.screenshot({ path: 'tests/out/phase5.png' });
     await page.click('#btn-mode');
     assert.ok(await page.locator('#storyboard').isVisible());
-
-    // حفظ كقالب
-    await page.click('[data-tool="template"]');
-    await page.getByRole('button', { name: 'احفظ كقالب' }).click();
-    await waitFor(page, async () => true);
-    await page.waitForTimeout(500);
-    assert.ok(await page.locator('.modal .cell').count() >= 4, 'ظهر القالب المحفوظ');
-    await page.click('#modal-close');
 
     // التصدير
     await page.click('#btn-export');

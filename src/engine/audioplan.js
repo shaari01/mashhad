@@ -2,7 +2,7 @@
 import { layout, srcLength, speedAt, clipDuration } from '../core/timeline.js';
 
 export function audioItemDuration(a) {
-  return Math.max(0, (a.out ?? 0) - (a.in ?? 0));
+  return Math.max(0, (a.out ?? 0) - (a.in ?? 0)) / (a.speed || 1);
 }
 
 // كل قطعة: {key, mediaId, when, offset, srcDur, dur, rate|rateCurve, reverse, gain, fadeIn, fadeOut, kind}
@@ -50,13 +50,13 @@ export function buildAudioPlan(project, total = null) {
       kind: a.kind || 'music',
       when,
       offset: a.in || 0,
-      srcDur: dur,
+      srcDur: dur * (a.speed || 1),
       dur,
       reverse: false,
       gain: a.volume ?? 1,
       fadeIn: a.fadeIn || 0,
       fadeOut: Math.min(a.fadeOut || 0, dur),
-      rate: 1,
+      rate: a.speed || 1,
       rateCurve: null,
       duck: a.kind === 'music',
     });

@@ -1,7 +1,7 @@
 // المرحلة 4: الملصقات، وفيديو فوق فيديو، والمؤثرات الصوتية، والتجميد، والتسجيل، والوارد من البرامج الأخرى
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor, meanVolume } from './helpers.mjs';
+import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor, meanVolume , tool, setSlider } from './helpers.mjs';
 
 test('المرحلة 4: ملصقات وطبقات ومؤثرات وتجميد', { timeout: 240000 }, async () => {
   const srv = await startServer(4178);
@@ -13,7 +13,7 @@ test('المرحلة 4: ملصقات وطبقات ومؤثرات وتجميد', 
 
     // إيموجي
     await page.evaluate(() => window.__app.preview.seek(0.5));
-    await page.click('[data-tool="sticker"]');
+    await tool(page, 'sticker');
     await page.locator('.sheet .grid .cell', { hasText: '😂' }).click();
     let p = await proj(page);
     assert.equal(p.overlays.length, 1);
@@ -47,14 +47,14 @@ test('المرحلة 4: ملصقات وطبقات ومؤثرات وتجميد', 
     await page.click('#sheet-close');
 
     // فيديو فوق فيديو
-    await page.click('[data-tool="pip"]');
+    await tool(page, 'pip');
     await chooseFiles(page, () => page.getByText('فيديو فوق الفيديو').click(), ['clipB.mp4']);
     await waitFor(page, () => window.__app.project.overlays.some((x) => x.kind === 'video'));
     await page.click('#sheet-close');
 
     // مؤثر صوتي
     await page.evaluate(() => window.__app.preview.seek(1.5));
-    await page.click('[data-tool="sfx"]');
+    await tool(page, 'sfx');
     await page.locator('.sheet .grid .cell[aria-label="تصفيق"]').click();
     await waitFor(page, () => window.__app.project.audio.some((a) => a.kind === 'sfx'));
     // الوارد من برنامج الصوت (صندوق مشترك)
@@ -67,7 +67,7 @@ test('المرحلة 4: ملصقات وطبقات ومؤثرات وتجميد', 
       await new Promise((res, rej) => { const r = indexedDB.open('shared-media-inbox', 1); r.onupgradeneeded = () => r.result.createObjectStore('items', { keyPath: 'id' }); r.onsuccess = () => { const tx = r.result.transaction('items', 'readwrite'); tx.objectStore('items').put({ id: 'x1', name: 'صوت من صدى', type: 'audio', mime: 'audio/wav', blob, duration: 1, created: Date.now(), from: 'sada' }); tx.oncomplete = res; tx.onerror = rej; }; });
     });
     await page.click('#sheet-close');
-    await page.click('[data-tool="sfx"]');
+    await tool(page, 'sfx');
     await page.locator('.sheet .list-item', { hasText: 'صوت من صدى' }).getByRole('button', { name: 'استورد' }).click();
     await waitFor(page, () => window.__app.project.audio.filter((a) => a.kind === 'sfx').length === 2);
     const left = await page.evaluate(() => new Promise((res) => { const r = indexedDB.open('shared-media-inbox', 1); r.onsuccess = () => { const q = r.result.transaction('items').objectStore('items').count(); q.onsuccess = () => res(q.result); }; }));
@@ -76,7 +76,7 @@ test('المرحلة 4: ملصقات وطبقات ومؤثرات وتجميد', 
 
     // التسجيل الصوتي (ميكروفون وهمي)
     await page.evaluate(() => window.__app.preview.seek(0.2));
-    await page.click('[data-tool="mic"]');
+    await tool(page, 'mic');
     await page.getByRole('button', { name: 'ابدأ التسجيل' }).click();
     await page.waitForTimeout(1200);
     await page.getByRole('button', { name: 'أوقف التسجيل' }).click();
@@ -85,7 +85,7 @@ test('المرحلة 4: ملصقات وطبقات ومؤثرات وتجميد', 
 
     // التجميد عند 1 ث
     await page.evaluate(() => window.__app.preview.seek(1));
-    await page.click('[data-tool="freeze"]');
+    await tool(page, 'freeze');
     p = await proj(page);
     assert.equal(p.clips.length, 4);
     assert.equal(p.clips[1].type, 'freeze');

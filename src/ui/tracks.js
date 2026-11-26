@@ -1,5 +1,6 @@
 // شريط الأصوات تحت البطاقات: الموسيقى والمؤثرات والتسجيلات، مع الشكل الموجي وعلامات الإيقاع.
 // الزمن يجري من اليمين إلى اليسار، مثل ترتيب البطاقات.
+import { audioItemDuration } from '../engine/audioplan.js';
 import { app, select } from '../app.js';
 import { layout } from '../core/timeline.js';
 import * as lib from '../media/library.js';
@@ -44,7 +45,7 @@ export function renderTracks() {
     const lane = h('div.track-lane', { 'aria-label': label });
     for (const a of list) {
       const rec = lib.cachedRecord(a.mediaId);
-      const d = a.out - a.in;
+      const d = audioItemDuration(a);
       const el = h('div.aud-item.' + kind + (app.selected?.type === 'audio' && app.selected.id === a.id ? '.sel' : ''), {
         style: { right: (a.start / T) * 100 + '%', width: Math.max(1, (d / T) * 100) + '%' },
         onclick: () => { select('audio', a.id); hooks.openAudio?.(a); },

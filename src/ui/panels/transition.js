@@ -1,5 +1,5 @@
 // مكتبة الانتقالات بمعاينة صغيرة متحركة، ومدة قابلة للتعديل، وزر «طبّق على الكل».
-import { app, edit, select } from '../../app.js';
+import { app, edit, select, shown } from '../../app.js';
 import { layout } from '../../core/timeline.js';
 import { TRANSITIONS, drawTransition } from '../../engine/transitions.js';
 import * as lib from '../../media/library.js';
@@ -44,6 +44,7 @@ export function openTransitionPanel(index) {
     const grid = h('div.chips', { style: { flexWrap: 'wrap' } });
     const canv = [];
     for (const [k, label] of Object.entries(TRANSITIONS)) {
+      if (k !== 'none' && !shown('transitions', k)) continue;
       const cv = h('canvas', { width: 64, height: 64 });
       canv.push([cv, k]);
       grid.append(h('button.chip' + (cur === k ? '.on' : ''), { onclick: () => {

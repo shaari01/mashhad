@@ -1,5 +1,6 @@
 // وضع الخط الزمني المتقدم (أسلوب VN): مسارات للفيديو والنص والملصقات والأصوات.
 // الزمن من اليمين إلى اليسار. سحب العنصر ينقله، وسحب طرفيه يقصّه، مع الالتصاق بالإيقاع والمؤشر.
+import { audioItemDuration } from '../engine/audioplan.js';
 import { app, select, live, commit, emit } from '../app.js';
 import { layout, fmtTime, snap, clamp, clipDuration, srcLength, MIN_CLIP } from '../core/timeline.js';
 import * as lib from '../media/library.js';
@@ -49,7 +50,7 @@ export function renderTimeline() {
   for (const [kind, ic, label] of [['music', 'music', 'الموسيقى'], ['sfx', 'sfx', 'المؤثرات'], ['voice', 'mic', 'التسجيل']]) {
     const list = (p.audio || []).filter((a) => (a.kind || 'music') === kind);
     if (!list.length) continue;
-    inner.append(rowEl(label, ic, list.map((a) => item('audio', a, a.start, a.out - a.in, null, isSel('audio', a.id), lib.cachedRecord(a.mediaId)?.name || label, 'aud'))));
+    inner.append(rowEl(label, ic, list.map((a) => item('audio', a, a.start, audioItemDuration(a), null, isSel('audio', a.id), lib.cachedRecord(a.mediaId)?.name || label, 'aud'))));
   }
   for (const b of p.beats || []) inner.append(h('div.beat-mark', { style: { right: xOf(b) + 'px', top: '18px' } }));
   inner.append(h('div.tl-head', { style: { right: xOf(app.preview?.time || 0) + 'px' }, 'data-tlhead': '1' }));
@@ -111,8 +112,9 @@ function startDrag(e, type, obj, el) {
       const rec = lib.cachedRecord(obj.mediaId);
       const D = rec?.duration ?? orig.out;
       if (handle === 'move') obj.start = Math.max(0, snapT(orig.start + dt, orig.start));
-      else if (handle === 'start') { const d = clamp(dt, -orig.in, orig.out - orig.in - 0.1); obj.start = Math.max(0, orig.start + d); obj.in = orig.in + d; }
-      else obj.out = clamp(orig.out + dt, orig.in + 0.1, D);
+      const sp = obj.speed || 1;
+      if (handle === 'start') { const d = clamp(dt, -orig.in / sp, (orig.out - orig.in - 0.1) / sp); obj.start = Math.max(0, orig.start + d); obj.in = orig.in + d * sp; }
+      else if (handle === 'end') obj.out = clamp(orig.out + dt * sp, orig.in + 0.1, D);
     } else {
       const d = orig.end - orig.start;
       if (handle === 'move') { obj.start = Math.max(0, snapT(orig.start + dt, orig.start)); obj.end = obj.start + d; }
@@ -122,7 +124,7 @@ function startDrag(e, type, obj, el) {
     live();
     // تحديث سريع للعنصر دون إعادة بناء
     const s = type === 'clip' ? startT : obj.start;
-    const dur = type === 'clip' ? clipDuration(obj) : type === 'audio' ? obj.out - obj.in : obj.end - obj.start;
+    const dur = type === 'clip' ? clipDuration(obj) : type === 'audio' ? audioItemDuration(obj) : obj.end - obj.start;
     el.style.right = xOf(s) + 'px';
     el.style.width = Math.max(6, dur * pps) + 'px';
   };

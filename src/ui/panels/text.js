@@ -1,8 +1,8 @@
 // لوحة النص: كتابة نص عربي، واختيار الخط واللون والحد والظل والخلفية، وحركات الدخول والخروج،
 // وتوقيت الظهور. يُسحب النص على المعاينة لتغيير مكانه.
-import { app, edit, live, commit, select, findSelected } from '../../app.js';
+import { app, edit, live, commit, select, findSelected, shown } from '../../app.js';
 import { layout, fmtTime } from '../../core/timeline.js';
-import { newText, ANIMS } from '../../engine/text.js';
+import { newText, ANIMS, ANIMS_PRO } from '../../engine/text.js';
 import { FONTS, ensureFont } from '../../fonts.js';
 import { h, btn, slider, seg, openSheet, refreshSheet, toast } from '../dom.js';
 
@@ -21,11 +21,11 @@ export function openTextPanel() {
   let tab = 'text';
   openSheet('text', 'نص', (body) => {
     const sel = app.selected?.type === 'text' ? findSelected() : null;
-    const visible = app.project.texts.filter((x) => !x.lyric);
+    const visible = app.project.texts.slice().sort((a, b) => a.start - b.start);
     body.append(h('div.row', {}, btn('نص جديد', () => { addText(); refreshSheet(); setTimeout(() => document.querySelector('#sheet textarea')?.focus(), 50); }, { icon: 'plus', cls: 'pri' })));
     if (visible.length > 1 || (visible.length && !sel)) {
       const chips = h('div.chips');
-      for (const x of visible) chips.append(h('button.chip' + (sel?.id === x.id ? '.on' : ''), { onclick: () => { select('text', x.id); app.preview.seek(x.start + 0.01); refreshSheet(); } }, x.text.slice(0, 14) || '…', h('small', {}, fmtTime(x.start))));
+      for (const x of visible) chips.append(h('button.chip' + (sel?.id === x.id ? '.on' : ''), { onclick: () => { select('text', x.id); app.preview.seek(x.start + 0.01); refreshSheet(); } }, (x.lyric ? '♪ ' : '') + (x.text.slice(0, 14) || '…'), h('small', {}, fmtTime(x.start))));
       body.append(chips);
     }
     if (!sel) { body.append(h('p.hint', {}, 'اكتب عنوانًا أو تعليقًا. يظهر النص عند موضع المؤشر لمدة 3 ثوانٍ، ويمكنك سحبه على المعاينة.')); return; }
@@ -38,6 +38,7 @@ export function openTextPanel() {
     if (tab === 'text') {
       const fonts = h('div.chips');
       for (const f of FONTS) {
+        if (f.id !== tx.font && !shown('fonts', f.id)) continue;
         ensureFont(f.id).then(() => {});
         fonts.append(h('button.chip' + (tx.font === f.id ? '.on' : ''), { style: { fontFamily: `"${f.id}"`, fontSize: '20px', minWidth: '96px' }, onclick: () => { edit('الخط', () => { tx.font = f.id; }); } }, tx.text.split('\n')[0].slice(0, 8) || 'مقطع', h('small', { style: { fontFamily: 'Cairo', fontSize: '11px' } }, f.label)));
       }
@@ -58,17 +59,22 @@ export function openTextPanel() {
       }
       body.append(slider('الميلان', { min: -30, max: 30, step: 1, value: tx.rotation || 0, fmt: (v) => v + '°', oninput: (v) => { tx.rotation = v; live(); }, onchange: () => commit('ميلان') }));
     } else if (tab === 'anim') {
-      body.append(h('p.hint', {}, 'حركة الدخول'), animChips(tx.animIn, (v) => edit('حركة', () => { tx.animIn = v; })));
-      body.append(h('p.hint', {}, 'حركة الخروج'), animChips(tx.animOut, (v) => edit('حركة', () => { tx.animOut = v; })));
+      body.append(h('p.hint', {}, 'حركة الظهور'), animChips(tx.animIn, (v) => { edit('حركة', () => { tx.animIn = v; }); app.preview.seek(tx.start + 0.01); playRange(tx.start, Math.min(tx.end, tx.start + (tx.animDur || 0.4) + 0.6)); }));
+      body.append(h('p.hint', {}, 'حركة الاختفاء'), animChips(tx.animOut, (v) => { edit('حركة', () => { tx.animOut = v; }); playRange(Math.max(tx.start, tx.end - (tx.animDur || 0.4) - 0.6), tx.end + 0.05); }));
+      if (!isDesktop()) body.append(h('p.hint', {}, 'على اللابتوب تظهر حركات إضافية أكثر.'));
       body.append(slider('مدة الحركة', { min: 0.1, max: 1.5, step: 0.05, value: tx.animDur, fmt: (v) => v.toFixed(2) + ' ث', onchange: (v) => edit('مدة الحركة', () => { tx.animDur = v; }) }));
     } else {
+      // توقيت دقيق (للأغاني): أدخل الثانية بالضبط، أو حرّك بخطوات صغيرة، أو خذ موضع المؤشر
       const T = Math.max(0.5, layout(app.project).duration);
-      body.append(slider('يظهر عند', { min: 0, max: T, step: 0.05, value: tx.start, fmt: (v) => fmtTime(v, true), oninput: (v) => { const d = tx.end - tx.start; tx.start = v; tx.end = v + d; live(); }, onchange: () => commit('توقيت النص') }));
-      body.append(slider('المدة', { min: 0.3, max: Math.max(1, T), step: 0.05, value: tx.end - tx.start, fmt: (v) => v.toFixed(1) + ' ث', oninput: (v) => { tx.end = tx.start + v; live(); }, onchange: () => commit('مدة النص') }));
+      body.append(timeRow('يظهر عند', () => tx.start, (v) => { tx.start = Math.max(0, Math.min(v, tx.end - 0.1)); }, () => tx.start + 0.01));
+      body.append(timeRow('يختفي عند', () => tx.end, (v) => { tx.end = Math.max(tx.start + 0.1, Math.min(v, T + 30)); }, () => Math.max(tx.start, tx.end - 0.05)));
+      body.append(h('p.hint', {}, `المدة ${(tx.end - tx.start).toFixed(2)} ث. شغّل الأغنية وأوقفها عند بداية المقطع ثم اضغط «من المؤشر».`));
+      const sorted = app.project.texts.filter((x) => x.id !== tx.id && x.start >= tx.start).sort((a, b) => a.start - b.start);
+      const next = sorted[0];
       body.append(h('div.row', {},
-        btn('يبدأ من المؤشر', () => edit('توقيت', () => { const d = tx.end - tx.start; tx.start = app.preview.time; tx.end = tx.start + d; })),
-        btn('ينتهي عند المؤشر', () => edit('توقيت', () => { if (app.preview.time > tx.start + 0.2) tx.end = app.preview.time; })),
-        btn('طوال الفيديو', () => edit('توقيت', () => { tx.start = 0; tx.end = T; }))));
+        btn('جرّب السطر', () => playRange(Math.max(0, tx.start - 0.5), tx.end + 0.3), { icon: 'play' }),
+        btn('طوال الفيديو', () => edit('توقيت', () => { tx.start = 0; tx.end = T; })),
+        next ? btn('يبدأ التالي عند نهايته', () => { edit('ربط التوقيت', () => { next.start = tx.end; if (next.end <= next.start) next.end = next.start + 1; }); toast('بدأ السطر التالي عند نهاية هذا'); }) : null));
     }
     body.append(h('div.row', {},
       btn('نسخ', () => { const c = { ...JSON.parse(JSON.stringify(tx)), id: 'txt_' + Math.random().toString(36).slice(2, 10), y: Math.min(0.95, tx.y + 0.1) }; edit('نسخ النص', (p) => p.texts.push(c)); select('text', c.id); }, { icon: 'copy' }),
@@ -85,8 +91,34 @@ export function colorRow(label, value, onpick) {
   return row;
 }
 
+export const isDesktop = () => matchMedia('(pointer: fine) and (min-width: 900px)').matches;
+
 function animChips(value, onpick) {
-  const el = h('div.chips');
-  for (const [k, label] of Object.entries(ANIMS)) el.append(h('button.chip' + (value === k ? '.on' : ''), { onclick: () => onpick(k) }, label));
+  const el = h('div.chips', { style: { flexWrap: 'wrap' } });
+  const all = { ...ANIMS, ...(isDesktop() ? ANIMS_PRO : {}) };
+  if (!all[value] && ANIMS_PRO[value]) all[value] = ANIMS_PRO[value];
+  for (const [k, label] of Object.entries(all)) {
+    if (k !== 'none' && k !== value && !shown('anims', k)) continue;
+    el.append(h('button.chip' + (value === k ? '.on' : ''), { onclick: () => onpick(k) }, label));
+  }
   return el;
+}
+
+// تشغيل جزء قصير للمعاينة ثم التوقف
+let stopTimer = null;
+export function playRange(a, b) {
+  clearTimeout(stopTimer);
+  app.preview.seek(Math.max(0, a));
+  app.preview.play();
+  stopTimer = setTimeout(() => { if (app.preview.playing) app.preview.pause(); }, Math.max(300, (b - a) * 1000));
+}
+
+function timeRow(label, get, set, seekTo) {
+  const fix = (v) => (Math.round(v * 100) / 100).toFixed(2);
+  const inp = h('input.inp.tin', { type: 'number', step: '0.01', min: 0, value: fix(get()), dir: 'ltr', inputmode: 'decimal', 'aria-label': label + ' (ثانية)' });
+  const apply = (v) => { edit(label, () => set(v)); inp.value = fix(get()); app.preview.seek(seekTo()); };
+  inp.addEventListener('change', () => { const v = parseFloat(inp.value); if (isFinite(v)) apply(v); });
+  const nud = (d) => h('button.btn.nudge', { type: 'button', onclick: () => apply(get() + d) }, (d > 0 ? '+' : '−') + Math.abs(d));
+  return h('div.row.trow', {}, h('label', {}, label), nud(-0.5), nud(-0.05), inp, nud(0.05), nud(0.5),
+    btn('من المؤشر', () => apply(app.preview.time), { icon: 'tap' }));
 }

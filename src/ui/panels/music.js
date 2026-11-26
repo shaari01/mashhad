@@ -1,4 +1,5 @@
 // لوحة الموسيقى والأصوات: إضافة ملف، وقص بالشكل الموجي، وموضع البداية، والتلاشي، ومستوى الصوت.
+import { audioItemDuration } from '../../engine/audioplan.js';
 import { app, edit, live, commit, select, findSelected } from '../../app.js';
 import { layout, fmtTime } from '../../core/timeline.js';
 import { uid } from '../../core/project.js';
@@ -7,7 +8,7 @@ import { h, btn, slider, openSheet, refreshSheet, closeSheet, toast, seg } from 
 import { trimmer } from '../trimmer.js';
 import { drawPeaks } from '../tracks.js';
 
-const KIND_LABEL = { music: 'الموسيقى', sfx: 'المؤثرات الصوتية', voice: 'التسجيل الصوتي' };
+const KIND_LABEL = { music: 'الموسيقى', sfx: 'المؤثرات الصوتية', voice: 'الراوي والتسجيل' };
 
 export async function addAudioFile(kind = 'music') {
   const files = await lib.pickFiles('audio', { multiple: false, preferCopy: app.settings.copyAlways });
@@ -39,12 +40,14 @@ export function addAudioItem(rec, kind = 'music', start = null) {
 
 export function openAudioPanel(item = null, kind = 'music') {
   if (item) select('audio', item.id);
+  else if (app.selected?.type === 'audio' && (findSelected()?.kind || 'music') !== kind) select(null);
   openSheet('audio', item ? KIND_LABEL[item.kind || 'music'] : KIND_LABEL[kind], (body) => {
     const sel = app.selected?.type === 'audio' ? findSelected() : null;
     const k = sel?.kind || kind;
     const list = app.project.audio.filter((a) => (a.kind || 'music') === k);
-    const head = h('div.row', {}, btn(k === 'music' ? 'أضف موسيقى من ملفاتك' : 'أضف ملفًا صوتيًا', async () => { const it = await addAudioFile(k); if (it) refreshSheet(); }, { icon: 'plus', cls: 'pri' }));
+    const head = h('div.row', {}, btn(k === 'music' ? 'أضف موسيقى من ملفاتك' : k === 'voice' ? 'أضف صوت الراوي من ملفاتك' : 'أضف ملفًا صوتيًا', async () => { const it = await addAudioFile(k); if (it) refreshSheet(); }, { icon: 'plus', cls: 'pri' }));
     body.append(head);
+    if (k === 'voice') head.append(btn('سجّل بصوتك', () => import('./sound.js').then((m) => m.openMicPanel()), { icon: 'mic' }));
     if (k === 'music') {
       body.append(h('div.row', {}, h('label', {}, 'خفض تلقائي'), seg([['on', 'عند وجود كلام'], ['off', 'متوقف']], app.project.duck?.enabled ? 'on' : 'off', (v) => edit('خفض تلقائي', (p) => { p.duck = { ...(p.duck || { level: 0.3 }), enabled: v === 'on' }; }))));
     }
@@ -52,12 +55,12 @@ export function openAudioPanel(item = null, kind = 'music') {
       const chips = h('div.chips');
       for (const a of list) {
         const rec = lib.cachedRecord(a.mediaId);
-        chips.append(h('button.chip' + (sel?.id === a.id ? '.on' : ''), { onclick: () => { select('audio', a.id); refreshSheet(); } }, rec?.name?.slice(0, 18) || 'صوت', h('small', {}, fmtTime(a.out - a.in))));
+        chips.append(h('button.chip' + (sel?.id === a.id ? '.on' : ''), { onclick: () => { select('audio', a.id); refreshSheet(); } }, rec?.name?.slice(0, 18) || 'صوت', h('small', {}, fmtTime(audioItemDuration(a)))));
       }
       body.append(chips);
     }
     if (!sel) {
-      if (!list.length) body.append(h('p.hint', {}, k === 'music' ? 'اختر أغنية أو موسيقى من جهازك. ستُقص تلقائيًا على طول الفيديو، ويمكنك تعديلها.' : 'لا توجد أصوات بعد.'));
+      if (!list.length) body.append(h('p.hint', {}, k === 'music' ? 'اختر أغنية أو موسيقى من جهازك. ستُقص تلقائيًا على طول الفيديو، ويمكنك تعديلها. يمكن أن تجتمع الموسيقى مع صوت الراوي.' : k === 'voice' ? 'أضف تعليقًا صوتيًا (راوٍ) من ملف، أو سجّله بصوتك. تنخفض الموسيقى تلقائيًا عند كلامه.' : 'لا توجد أصوات بعد.'));
       return;
     }
     const a = sel;
@@ -74,6 +77,7 @@ export function openAudioPanel(item = null, kind = 'music') {
     const T = Math.max(1, layout(app.project).duration);
     body.append(slider('يبدأ عند', { min: 0, max: T, step: 0.05, value: a.start, fmt: (v) => fmtTime(v, true), oninput: (v) => { a.start = v; live(); }, onchange: () => commit('موضع الصوت') }));
     body.append(slider('المستوى', { min: 0, max: 2, step: 0.05, value: a.volume, fmt: (v) => Math.round(v * 100) + '٪', oninput: (v) => { a.volume = v; }, onchange: () => commit('مستوى الصوت') }));
+    body.append(slider('السرعة', { min: 0.5, max: 2, step: 0.05, value: a.speed || 1, fmt: (v) => v.toFixed(2) + '×', oninput: (v) => { a.speed = v; live(); }, onchange: () => commit('سرعة الصوت') }));
     body.append(slider('تلاشٍ في البداية', { min: 0, max: 5, step: 0.1, value: a.fadeIn, fmt: (v) => v.toFixed(1) + ' ث', oninput: (v) => { a.fadeIn = v; }, onchange: () => commit('تلاشي') }));
     body.append(slider('تلاشٍ في النهاية', { min: 0, max: 5, step: 0.1, value: a.fadeOut, fmt: (v) => v.toFixed(1) + ' ث', oninput: (v) => { a.fadeOut = v; }, onchange: () => commit('تلاشي') }));
     body.append(h('div.row', {},

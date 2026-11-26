@@ -1,7 +1,7 @@
 // المرحلة 3: كلمات الأغاني بالنقر، والكاراوكي، وعلامات الإيقاع
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor, canvasStats } from './helpers.mjs';
+import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor, canvasStats , tool, setSlider } from './helpers.mjs';
 
 test('المرحلة 3: كلمات بالنقر وكاراوكي وإيقاع', { timeout: 240000 }, async () => {
   const srv = await startServer(4176);
@@ -9,13 +9,13 @@ test('المرحلة 3: كلمات بالنقر وكاراوكي وإيقاع', 
   try {
     await chooseFiles(page, () => page.click('#btn-empty-add'), ['photo.jpg', 'photo.jpg', 'clipA.webm']);
     await waitFor(page, () => window.__app.project.clips.length === 3);
-    await page.click('[data-tool="music"]');
+    await tool(page, 'music');
     await chooseFiles(page, () => page.getByText('أضف موسيقى من ملفاتك').click(), ['beats.mp3']);
     await waitFor(page, () => window.__app.project.audio.length === 1);
     await page.click('#sheet-close');
 
     // الكلمات
-    await page.click('[data-tool="lyrics"]');
+    await tool(page, 'lyrics');
     await page.fill('#sheet textarea', 'يا ليل يا عين\nالسطر الثاني من الأغنية\nوالثالث');
     await page.getByText('التالي: التوقيت').click();
     await page.getByText('ابدأ التشغيل').click();
@@ -46,7 +46,7 @@ test('المرحلة 3: كلمات بالنقر وكاراوكي وإيقاع', 
     await page.click('#sheet-close');
 
     // الإيقاع: كشف تلقائي ثم توزيع المقاطع
-    await page.click('[data-tool="beats"]');
+    await tool(page, 'beats');
     await page.getByText('اكشف الإيقاع تلقائيًا').click();
     await waitFor(page, () => window.__app.project.beats.length > 5);
     p = await proj(page);

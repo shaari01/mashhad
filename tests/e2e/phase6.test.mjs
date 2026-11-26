@@ -1,7 +1,7 @@
 // المرحلة 6: تتبع الحركة، والشاشة الخضراء، والترجمة التلقائية (بخدمة وهمية)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor } from './helpers.mjs';
+import { startServer, openApp, chooseFiles, proj, saveExport, ffprobe, waitFor , tool, setSlider } from './helpers.mjs';
 
 test('المرحلة 6: تتبع وشاشة خضراء وترجمة', { timeout: 300000 }, async () => {
   const srv = await startServer(4180);
@@ -14,7 +14,7 @@ test('المرحلة 6: تتبع وشاشة خضراء وترجمة', { timeout:
 
     // ملصق فوق المربع المتحرك ثم تتبعه
     await page.evaluate(() => window.__app.preview.seek(0));
-    await page.click('[data-tool="sticker"]');
+    await tool(page, 'sticker');
     await page.locator('.sheet .grid .cell', { hasText: '😂' }).click();
     await waitFor(page, () => window.__app.project.overlays.length === 1);
     await page.evaluate(() => { const o = window.__app.project.overlays[0]; o.start = 0; o.end = 3.6; o.x = 78 / 360; o.y = 168 / 640; o.size = 0.15; });
@@ -32,7 +32,7 @@ test('المرحلة 6: تتبع وشاشة خضراء وترجمة', { timeout:
 
     // فيديو بشاشة خضراء فوق الفيديو
     await page.evaluate(() => window.__app.preview.seek(1));
-    await page.click('[data-tool="pip"]');
+    await tool(page, 'pip');
     await chooseFiles(page, () => page.getByText('فيديو فوق الفيديو').click(), ['green.mp4']);
     await waitFor(page, () => window.__app.project.overlays.some((x) => x.kind === 'video'));
     await page.getByRole('button', { name: 'أزل الخلفية الخضراء' }).click();
@@ -62,7 +62,7 @@ test('المرحلة 6: تتبع وشاشة خضراء وترجمة', { timeout:
       got = { auth: req.headers()['authorization'], size: req.postDataBuffer()?.length || 0 };
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ text: 'x', segments: [{ start: 0.2, end: 1.4, text: 'السلام عليكم' }, { start: 1.6, end: 3, text: 'هذا اختبار للترجمة التلقائية' }] }) });
     });
-    await page.click('[data-tool="captions"]');
+    await tool(page, 'captions');
     await page.getByLabel('عنوان خدمة التفريغ').fill(srv.url + 'mock-transcribe');
     await page.getByLabel('عنوان خدمة التفريغ').dispatchEvent('change');
     await page.getByLabel('مفتاح الخدمة').fill('test-key');

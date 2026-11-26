@@ -1,5 +1,5 @@
 // المؤثرات الصوتية المدمجة، وأصواتك، والتسجيل الصوتي بالميكروفون فوق الفيديو، والتجميد.
-import { app, edit, select } from '../../app.js';
+import { app, edit, select, shown } from '../../app.js';
 import * as db from '../../storage/db.js';
 import * as lib from '../../media/library.js';
 import { SFX, renderSfx } from '../../engine/sfx.js';
@@ -37,6 +37,7 @@ export function openSfxPanel() {
     body.append(h('p.hint', {}, 'المس الصوت ليُضاف عند المؤشر ويُسمَع. لتعديل مستواه أو موضعه المسه في مسار المؤثرات.'));
     const grid = h('div.grid');
     for (const s of SFX) {
+      if (!shown('sfx', s.id)) continue;
       grid.append(h('button.cell', { style: { display: 'flex', flexDirection: 'column', fontSize: '28px', aspectRatio: 'auto', minHeight: '76px' }, 'aria-label': s.label, onclick: async (e) => {
         const b = e.currentTarget; b.disabled = true;
         try {

@@ -147,6 +147,7 @@ export async function importFile({ file, handle }, { forceKind = null, copyAlway
     const { bmp, meta } = await imageMeta(file);
     Object.assign(rec, meta);
     rt.bitmap = bmp;
+    rec.animated = await isAnimated(file);
   } else if (kind === 'video') {
     let meta = await videoMeta(rt.url);
     const mbm = await mbMeta(file);
@@ -274,4 +275,57 @@ export function assetMap() {
   const m = new Map();
   for (const [id, r] of runtime) if (r.bitmap) m.set(id, { img: r.bitmap, w: r.bitmap.width, h: r.bitmap.height });
   return m;
+}
+
+// ———— الصور المتحركة (GIF و WebP المتحرك) عبر ImageDecoder ————
+export async function isAnimated(file) {
+  if (typeof ImageDecoder === 'undefined' || !/gif|webp|png/i.test(file.type || file.name)) return false;
+  try {
+    const dec = new ImageDecoder({ data: file.stream(), type: file.type || 'image/gif' });
+    await dec.tracks.ready;
+    const n = dec.tracks.selectedTrack?.frameCount || 1;
+    dec.close();
+    return n > 1;
+  } catch (e) { return false; }
+}
+
+export async function loadAnim(id) {
+  const r = runtime.get(id);
+  if (!r) return null;
+  if (r.anim) return r.anim;
+  if (!r.animPromise) r.animPromise = (async () => {
+    const dec = new ImageDecoder({ data: r.file.stream(), type: r.file.type || 'image/gif' });
+    await dec.tracks.ready;
+    const n = dec.tracks.selectedTrack.frameCount;
+    const frames = [];
+    let t = 0;
+    for (let i = 0; i < Math.min(n, 300); i++) {
+      const { image } = await dec.decode({ frameIndex: i });
+      const dur = (image.duration || 100000) / 1e6;
+      const bmp = await createImageBitmap(image);
+      image.close();
+      frames.push({ bmp, t0: t, dur });
+      t += dur;
+    }
+    dec.close();
+    r.anim = { frames, total: t || 1 };
+    emit(id);
+    return r.anim;
+  })().catch(() => null);
+  return r.animPromise;
+}
+
+export function animFrameAt(id, t) {
+  const a = runtime.get(id)?.anim;
+  if (!a) { if (runtime.get(id)) loadAnim(id); const b = runtime.get(id)?.bitmap; return b ? { img: b, w: b.width, h: b.height } : null; }
+  const x = ((t % a.total) + a.total) % a.total;
+  let f = a.frames[0];
+  for (const fr of a.frames) { if (fr.t0 <= x) f = fr; else break; }
+  return { img: f.bmp, w: f.bmp.width, h: f.bmp.height };
+}
+
+export async function allRecords() {
+  const list = await db.all('media');
+  for (const r of list) recCache.set(r.id, r);
+  return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }

@@ -130,7 +130,7 @@ on((what) => {
   if (what === 'live') { $('#total').textContent = fmtTime(layout(app.project).duration, true); renderTracks(); return; }
   renderAll();
   if (what === 'project' && sheetId()) refreshSheet();
-  if (what === 'select') renderToolbar(sheetId());
+  if (what === 'select') { renderToolbar(sheetId()); if (sheetId() && sheetId() !== 'lyrics' && sheetId() !== 'beats' && sheetId() !== 'mic') refreshSheet(); }
 });
 document.addEventListener('sheet', (e) => renderToolbar(e.detail));
 lib.onMediaChange(() => renderStoryboard());
@@ -165,5 +165,6 @@ window.addEventListener('pagehide', () => saveNow().catch(() => {}));
   await restoreLast();
   renderAll();
   window.__app = app; // للاختبارات الآلية
+  window.__lib = lib;
   document.body.dataset.ready = '1';
 })();

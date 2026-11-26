@@ -133,6 +133,7 @@ export async function exportVideo(project, opts = {}) {
   };
   const assets = lib.assetMap();
   for (const id of lib.mediaIdsOf(p)) await lib.ensure(id);
+  for (const o of p.overlays || []) if (o.kind === 'anim') await lib.loadAnim(o.mediaId);
 
   const n = Math.max(1, Math.round(total * fps));
   try {
@@ -157,6 +158,9 @@ export async function exportVideo(project, opts = {}) {
         if (spec.kind === 'image') {
           const a = assets.get(spec.mediaId);
           if (a) ovFrames.set(spec.id, a);
+        } else if (spec.kind === 'anim') {
+          const f = lib.animFrameAt(spec.mediaId, spec.src);
+          if (f) ovFrames.set(spec.id, f);
         } else {
           const pv = await prov('o:' + spec.id, spec.mediaId);
           const f = pv && (await pv.frameAt(spec.src));
@@ -209,6 +213,7 @@ export async function exportFrame(project, t, short = 1080) {
     const r = await lib.ensure(spec.mediaId);
     if (!r.ok) continue;
     if (spec.kind === 'image') ovFrames.set(spec.id, assets.get(spec.mediaId));
+    else if (spec.kind === 'anim') { await lib.loadAnim(spec.mediaId); const f = lib.animFrameAt(spec.mediaId, spec.src); if (f) ovFrames.set(spec.id, f); }
     else { const pv = await new VideoFrames(r.rt.file, Math.max(W, H)).init(); toDispose.push(pv); const f = await pv.still(spec.src); if (f) ovFrames.set(spec.id, f); }
   }
   drawFrame(canvas.getContext('2d'), W, H, project, lay, t, frames, assets, ovFrames);

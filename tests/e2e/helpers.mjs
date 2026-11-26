@@ -27,7 +27,7 @@ export async function startServer(port = 4173) {
 }
 
 export async function openApp(url, { mobile = true, noHandles = true, context = null } = {}) {
-  const browser = context ? null : await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = context ? null : await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
   const ctx = context || await browser.newContext(mobile ? { viewport: { width: 412, height: 860 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, locale: 'ar' } : { viewport: { width: 1366, height: 768 }, locale: 'ar' });
   if (noHandles) await ctx.addInitScript(() => { delete window.showOpenFilePicker; window.showOpenFilePicker = undefined; });
   const page = await ctx.newPage();

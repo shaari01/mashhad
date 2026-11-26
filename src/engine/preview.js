@@ -99,7 +99,9 @@ export class Preview {
     const buffers = lib.audioBuffers(lib.mediaIdsOf(p));
     this.clockBase = this.audioCtx.currentTime + 0.05;
     this.clockFrom = this.time;
-    this.mix = scheduleMix(this.audioCtx, p, buffers, { from: this.time, base: this.clockBase });
+    if (!this.out) { this.out = this.audioCtx.createGain(); this.out.connect(this.audioCtx.destination); }
+    this.out.gain.value = this.muted ? 0 : 1;
+    this.mix = scheduleMix(this.audioCtx, p, buffers, { from: this.time, base: this.clockBase, destination: this.out });
   }
 
   pause() {
@@ -184,13 +186,18 @@ export class Preview {
     }
     // إيقاف عناصر المقاطع غير الظاهرة
     const activeKeys = new Set(act.map((it) => (it.clip.type === 'freeze' ? 'f:' : 'c:') + it.clip.id));
-    for (const [k, e] of this.els) if (!activeKeys.has(k) && !k.startsWith('o:') && !e.el.paused) e.el.pause();
+    for (const spec of overlayFrameSpecs(p, t)) activeKeys.add('o:' + spec.id);
+    for (const [k, e] of this.els) if (!activeKeys.has(k) && !e.el.paused) e.el.pause();
     // الطبقات (فيديو فوق فيديو)
     const ovFrames = new Map();
     for (const spec of overlayFrameSpecs(p, t)) {
       if (spec.kind === 'image') {
         const r = lib.rt(spec.mediaId);
         if (r?.bitmap) ovFrames.set(spec.id, { img: r.bitmap, w: r.bitmap.width, h: r.bitmap.height });
+      } else if (spec.kind === 'anim') {
+        const f = lib.animFrameAt(spec.mediaId, spec.src);
+        if (f) ovFrames.set(spec.id, f);
+        if (this.playing === false) this.dirty = this.dirty || !lib.rt(spec.mediaId)?.anim;
       } else {
         const v = this.el('o:' + spec.id, spec.mediaId);
         if (!v) continue;

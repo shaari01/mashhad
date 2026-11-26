@@ -7,6 +7,10 @@ import { openTextPanel } from './ui/panels/text.js';
 import { openTransitionPanel, betweenButton } from './ui/panels/transition.js';
 import { openSpeedPanel, openAspectPanel } from './ui/panels/speed.js';
 import { openLyricsPanel, openBeatsPanel } from './ui/panels/lyrics.js';
+import { openStickerPanel, openPipPanel } from './ui/panels/stickers.js';
+import { openSfxPanel, openMicPanel, doFreeze } from './ui/panels/sound.js';
+import { registerDraggable } from './ui/stage.js';
+import { overlayBoxes } from './engine/overlays.js';
 
 export function installFeatures() {
   const T = (id, icon, label, run, order, group) => registerTool({ id, icon, label, run, order, group });
@@ -18,8 +22,15 @@ export function installFeatures() {
   // المرحلة 3
   T('lyrics', 'lyrics', 'كلمات', openLyricsPanel, 52, 'over');
   T('beats', 'beat', 'إيقاع', openBeatsPanel, 43, 'audio');
+  // المرحلة 4
+  T('sticker', 'sticker', 'ملصق', openStickerPanel, 51, 'over');
+  T('pip', 'pip', 'فوق فيديو', openPipPanel, 53, 'over');
+  T('sfx', 'sfx', 'مؤثرات', openSfxPanel, 42, 'audio');
+  T('mic', 'mic', 'تسجيل', openMicPanel, 44, 'audio');
+  T('freeze', 'freeze', 'تجميد', doFreeze, 14, 'clip');
+  registerDraggable({ type: 'overlay', boxes: () => overlayBoxes, get: (id) => app.project.overlays.find((o) => o.id === id), sizeKey: 'size' });
   setStoryboardHooks({ between: betweenButton });
-  installStage({ onOpen: (type) => { if (type === 'text') openTextPanel(); } });
+  installStage({ onOpen: (type, obj) => { if (type === 'text') openTextPanel(); if (type === 'overlay') (['video', 'image', 'anim'].includes(obj.kind) && obj.border ? openPipPanel : openStickerPanel)(); } });
   on((w) => { if (w === 'select' && app.preview) app.preview.dirty = true; });
   document.fonts?.addEventListener?.('loadingdone', () => { if (app.preview) app.preview.dirty = true; });
 }
